@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:16.04
 LABEL author="Adam Ewing <adam.ewing@gmail.com>"
 
 WORKDIR /opt
@@ -6,36 +6,93 @@ ENV PATH=$PATH:$HOME/bin
 ARG DEBIAN_FRONTEND=noninteractive
 RUN chmod 777 /opt
 
-# Install dependencies
-RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+#install the bareminimum and remove the cache
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
+    python3-dev \
+    python3-numpy \
+    python3-scipy \
     python3-pip \
+    python3-setuptools \
+    python3-wheel \
+    cython \
+    zlib1g-dev \
+    libbz2-dev \
+    libncurses5-dev \
+    liblzma-dev \
+    libglib2.0-dev \
     git \
     wget \
-    build-essential \
-    libz-dev \
-    libglib2.0-dev \
-    libbz2-dev \
-    liblzma-dev \
-    default-jre \
+    bzip2 \
+    pkg-config \
+    automake \
     autoconf \
-    samtools \
-    bwa
+    gcc \
+    g++ \
+    make \
+    default-jre
 
+RUN rm -rf /var/lib/apt/lists/* && apt-get autoremove
 
-RUN mkdir $HOME/bin
+ENV VELVET_VERSION 1.2.10
+ENV PICARD_VERSION 2.21.2
+ENV BWA_VERSION 0.7.17
+ENV SAMTOOLS_VERSION 1.9
+ENV BCFTOOLS_VERSION 1.9
 
-RUN wget https://github.com/dzerbino/velvet/archive/refs/tags/v1.2.10.tar.gz && tar -xvzf v1.2.10.tar.gz
-RUN make -C velvet-1.2.10
-RUN cp velvet-1.2.10/velvetg $HOME/bin && cp velvet-1.2.10/velveth $HOME/bin
+####################### VELVET #######################
+RUN wget https://github.com/dzerbino/velvet/archive/refs/tags/v${VELVET_VERSION}.tar.gz \
+    && tar -xvzf v${VELVET_VERSION}.tar.gz \
+    && make -C velvet-${VELVET_VERSION}
 
-RUN git clone https://github.com/adamewing/exonerate.git
-RUN cd exonerate && autoreconf -fi  && ./configure && make && make install
+ENV PATH=/opt/velvet-${VELVET_VERSION}:$PATH
 
-RUN wget https://github.com/broadinstitute/picard/releases/download/2.27.3/picard.jar
-RUN chmod +x picard.jar
-RUN export BAMSURGEON_PICARD_JAR=$HOME/picard.jar
+##################### EXONERATE #####################
+RUN git clone https://github.com/adamewing/exonerate.git \
+    && cd exonerate \
+    && autoreconf -fi \
+    && ./configure \
+    && make \
+    && make install
 
-RUN pip install pysam
+###################### SAMTOOLS ######################
+RUN wget https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2 \
+    && tar -xjf samtools-${SAMTOOLS_VERSION}.tar.bz2 \
+    && rm -f samtools-${SAMTOOLS_VERSION}.tar.bz2 \
+    && cd /opt/samtools-${SAMTOOLS_VERSION}/ \
+    && make \
+    && make install
+
+ENV PATH="/opt/samtools-${SAMTOOLS_VERSION}/:$PATH"
+
+###################### BCFTOOLS ######################
+RUN wget https://github.com/samtools/bcftools/releases/download/${BCFTOOLS_VERSION}/bcftools-${BCFTOOLS_VERSION}.tar.bz2 \
+    && tar -xjf bcftools-${BCFTOOLS_VERSION}.tar.bz2 \
+    && rm -f bcftools-${BCFTOOLS_VERSION}.tar.bz2 \
+    && cd /opt/bcftools-${BCFTOOLS_VERSION}/ \
+    && make \
+    && make install
+
+ENV PATH="/opt/samtools-${BCFTOOLS_VERSION}/:$PATH"
+
+######################## BWA ########################
+RUN wget https://github.com/lh3/bwa/releases/download/v${BWA_VERSION}/bwa-${BWA_VERSION}.tar.bz2 \
+    && tar -xjf bwa-${BWA_VERSION}.tar.bz2 \
+    && rm -f bwa-${BWA_VERSION}.tar.bz2 \
+    && cd /opt/bwa-${BWA_VERSION}/ \
+    && make
+
+ENV PATH="/opt/bwa-${BWA_VERSION}/:$PATH"
+
+#################### BAMSURGEON ####################
+#we really need that version and nothing more, because of backwards compatibility
+RUN pip3 install pysam==0.12.0
 
 RUN git clone https://github.com/adamewing/bamsurgeon.git
+
+###################### PICARD ######################
+RUN wget -O /opt/picard.jar https://github.com/broadinstitute/picard/releases/download/${PICARD_VERSION}/picard.jar
+
+ENV BAMSURGEON_PICARD_JAR=/opt/picard.jar
+
+CMD []
