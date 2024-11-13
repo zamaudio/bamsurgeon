@@ -1,8 +1,10 @@
 FROM ubuntu:20.04
 LABEL author="Adam Ewing <adam.ewing@gmail.com>"
 
+WORKDIR /opt
 ENV PATH=$PATH:$HOME/bin
 ARG DEBIAN_FRONTEND=noninteractive
+RUN chmod 777 /opt
 
 # Install dependencies
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
@@ -37,4 +39,3 @@ RUN export BAMSURGEON_PICARD_JAR=$HOME/picard.jar
 RUN pip install pysam
 
 RUN git clone https://github.com/adamewing/bamsurgeon.git
-RUN export PATH=$PATH:$HOME/bin && cd bamsurgeon
