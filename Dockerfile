@@ -88,11 +88,14 @@ ENV PATH="/opt/bwa-${BWA_VERSION}/:$PATH"
 #we really need that version and nothing more, because of backwards compatibility
 RUN pip3 install pysam==0.12.0
 
-RUN git clone https://github.com/adamewing/bamsurgeon.git
+# Use current code in docker in case local changes were made
+COPY . /opt/bamsurgeon
 
 ###################### PICARD ######################
 RUN wget -O /opt/picard.jar https://github.com/broadinstitute/picard/releases/download/${PICARD_VERSION}/picard.jar
 
 ENV BAMSURGEON_PICARD_JAR=/opt/picard.jar
+
+RUN chmod -R o+rx /opt
 
 CMD []
