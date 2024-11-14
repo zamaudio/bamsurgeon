@@ -307,7 +307,7 @@ def main(args):
 
     # merge tmp bams
     if len(tmpbams) == 1:
-        os.rename(tmpbams[0],outbam_mutsfile)
+        move(tmpbams[0],outbam_mutsfile)
     elif len(tmpbams) > 1:
         mergebams(tmpbams,outbam_mutsfile,maxopen=int(args.maxopen))
 
